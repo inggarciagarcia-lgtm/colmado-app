@@ -1,11 +1,26 @@
-import { withAuth } from "next-auth/middleware"
+import { NextResponse } from "next/server"
+import type { NextRequest } from "next/server"
+import { getToken } from "next-auth/jwt"
 
-export default withAuth({
-  secret: process.env.NEXTAUTH_SECRET || "un_secreto_muy_seguro_para_desarrollo",
-  pages: {
-    signIn: "/login",
-  },
-})
+export async function middleware(req: NextRequest) {
+  const secret = process.env.NEXTAUTH_SECRET || "un_secreto_muy_seguro_para_desarrollo"
+
+  // Check token with all cookie variations
+  let token = await getToken({ req, secret })
+  if (!token) {
+    token = await getToken({ req, secret, cookieName: "next-auth.session-token" })
+  }
+  if (!token) {
+    token = await getToken({ req, secret, cookieName: "__Secure-next-auth.session-token" })
+  }
+
+  if (!token) {
+    const loginUrl = new URL("/login", req.url)
+    return NextResponse.redirect(loginUrl)
+  }
+
+  return NextResponse.next()
+}
 
 export const config = {
   matcher: [

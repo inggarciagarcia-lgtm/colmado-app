@@ -43,7 +43,6 @@ export const authOptions: NextAuthOptions = {
         if (!user) return null
 
         const passwordMatch = await bcrypt.compare(password, user.password)
-        
         if (!passwordMatch) return null
 
         return { id: user.id, email: user.email, name: user.name }
@@ -55,17 +54,5 @@ export const authOptions: NextAuthOptions = {
   },
   session: {
     strategy: "jwt",
-  },
-  useSecureCookies: false,
-  cookies: {
-    sessionToken: {
-      name: `next-auth.session-token`,
-      options: {
-        httpOnly: true,
-        sameSite: "lax",
-        path: "/",
-        secure: false,
-      },
-    },
   },
 }

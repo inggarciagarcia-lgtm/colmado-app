@@ -33,12 +33,22 @@ export async function GET(req: Request) {
     const targetUrl = redirectPath.startsWith("http") ? redirectPath : `${baseUrl}${redirectPath.startsWith("/") ? "" : "/"}${redirectPath}`
     const response = NextResponse.redirect(targetUrl, { status: 302 })
 
+    // Set for HTTP (localhost and local network IP)
     response.cookies.set("next-auth.session-token", token, {
       httpOnly: true,
       path: "/",
       sameSite: "lax",
       secure: false,
-      maxAge: 30 * 24 * 60 * 60, // 30 days
+      maxAge: 30 * 24 * 60 * 60,
+    })
+
+    // Set for HTTPS (Cloudflare tunnel and mobile browsers)
+    response.cookies.set("__Secure-next-auth.session-token", token, {
+      httpOnly: true,
+      path: "/",
+      sameSite: "lax",
+      secure: true,
+      maxAge: 30 * 24 * 60 * 60,
     })
 
     return response
@@ -50,7 +60,7 @@ export async function GET(req: Request) {
 
 export async function POST(req: Request) {
   try {
-    const host = req.headers.get("x-forwarded-host") || req.headers.get("host") || "10.0.0.133:3000"
+    const host = req.headers.get("x-forwarded-host") || req.headers.get("host") || "localhost:3001"
     const proto = req.headers.get("x-forwarded-proto") || "http"
     const baseUrl = `${proto}://${host}`
 
@@ -105,13 +115,22 @@ export async function POST(req: Request) {
       ? NextResponse.json({ success: true, redirect: `${baseUrl}/` })
       : NextResponse.redirect(`${baseUrl}/`, { status: 302 })
 
-    // Set session cookie for all devices and IP networks
+    // Set for HTTP (localhost and local network IP)
     response.cookies.set("next-auth.session-token", token, {
       httpOnly: true,
       path: "/",
       sameSite: "lax",
       secure: false,
-      maxAge: 30 * 24 * 60 * 60, // 30 days
+      maxAge: 30 * 24 * 60 * 60,
+    })
+
+    // Set for HTTPS (Cloudflare tunnel and mobile browsers)
+    response.cookies.set("__Secure-next-auth.session-token", token, {
+      httpOnly: true,
+      path: "/",
+      sameSite: "lax",
+      secure: true,
+      maxAge: 30 * 24 * 60 * 60,
     })
 
     return response
