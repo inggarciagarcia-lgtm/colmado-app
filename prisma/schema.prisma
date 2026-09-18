@@ -1,0 +1,179 @@
+generator client {
+  provider      = "prisma-client-js"
+  binaryTargets = ["native", "windows"]
+}
+
+datasource db {
+  provider = "sqlite"
+  url      = env("DATABASE_URL")
+}
+
+model User {
+  id        String   @id @default(cuid())
+  name      String?
+  email     String?  @unique
+  password  String
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+}
+
+model Company {
+  id          String        @id @default(cuid())
+  name        String        @default("Mi Negocio")
+  rnc         String?       // RNC de la empresa (9 u 11 dígitos)
+  phone       String?
+  email       String?
+  address     String?
+  slogan      String?       // Mensaje pie de factura
+  ncfB02Seq   Int           @default(1) // Próximo Consumidor Final (B02)
+  ncfB01Seq   Int           @default(1) // Próximo Crédito Fiscal (B01)
+  ncfB15Seq   Int           @default(1) // Próximo Gubernamental (B15)
+  ncfExpiry   String?       @default("31/12/2026")
+  isDefault   Boolean       @default(false)
+  clients     Client[]
+  products    Product[]
+  invoices    Invoice[]
+  transactions Transaction[]
+  cashMovements CashMovement[]
+  createdAt   DateTime      @default(now())
+  updatedAt   DateTime      @updatedAt
+}
+
+model Client {
+  id           String        @id @default(cuid())
+  companyId    String?
+  company      Company?      @relation(fields: [companyId], references: [id], onDelete: Cascade)
+  name         String
+  rnc          String?       // RNC o Cédula del cliente
+  email        String?
+  phone        String?
+  address      String?
+  nickname      String?       // Apodo popular ("Doña Carmen", "El Moreno")
+  creditLimit   Float         @default(3000) // Límite de fiao
+  creditBalance Float         @default(0)    // Balance adeudado actual
+  bottleDebt    String?       // Deuda de botellas/vacíos (ej. "2 Grandes")
+  type         String        @default("CLIENT") // CLIENT or PROVIDER
+  transactions Transaction[]
+  invoices     Invoice[]
+  createdAt    DateTime      @default(now())
+  updatedAt    DateTime      @updatedAt
+}
+
+model Transaction {
+  id            String    @id @default(cuid())
+  companyId     String?
+  company       Company?  @relation(fields: [companyId], references: [id], onDelete: Cascade)
+  amount        Float
+  type          String    // INCOME (cobrar) or EXPENSE (pagar)
+  status        String    @default("PENDING") // PENDING, PAID
+  description   String?
+  category      String?   // Mercancía, Alquiler, Servicios, Nómina, etc.
+  ncfOrBillNo   String?   // N° Factura de proveedor o NCF
+  dueDate       DateTime? // Fecha de vencimiento de pago
+  paymentMethod String?   // Método con el que se pagó
+  date          DateTime  @default(now())
+  
+  clientId      String?
+  client        Client?   @relation(fields: [clientId], references: [id])
+
+  invoiceId     String?
+  invoice       Invoice?  @relation(fields: [invoiceId], references: [id])
+  
+  createdAt     DateTime  @default(now())
+  updatedAt     DateTime  @updatedAt
+}
+
+model Product {
+  id          String        @id @default(cuid())
+  companyId   String?
+  company     Company?      @relation(fields: [companyId], references: [id], onDelete: Cascade)
+  name        String
+  description String?
+  price       Float
+  stock         Float         @default(0)
+  category      String?       // BEBIDAS, PANADERIA, EMBUTIDOS, VIVERES, VARIOS
+  unit          String        @default("UNIDAD") // UNIDAD, LIBRA, PAQUETE
+  isPopular     Boolean       @default(false)    // Si aparece en botones rápidos
+  returnable    Boolean       @default(false)    // Si usa envase retornable
+  barcode       String?
+  hasItbis      Boolean       @default(true) // true = Gravado con ITBIS (18%), false = Exento (0%)
+  items       InvoiceItem[]
+  createdAt   DateTime      @default(now())
+  updatedAt   DateTime      @updatedAt
+}
+
+model Invoice {
+  id              String        @id @default(cuid())
+  companyId       String?
+  company         Company?      @relation(fields: [companyId], references: [id], onDelete: Cascade)
+  number          String        @unique // Correlativo interno FAC-0001
+  ncfType         String        @default("B02") // B02, B01, B15, NONE
+  ncf             String?       // Ej. B0200000001
+  ncfExpiry       String?       // Fecha de vencimiento NCF
+  clientId        String
+  client          Client        @relation(fields: [clientId], references: [id])
+  status          String        @default("PENDING") // PENDING, PAID, CANCELLED
+  paymentMethod   String        @default("EFECTIVO") // EFECTIVO, TRANSFERENCIA, TARJETA, CHEQUE, CREDITO
+  dueDate         DateTime?
+  subtotal        Float
+  taxableSubtotal Float         @default(0) // Monto Gravado con ITBIS
+  exemptSubtotal  Float         @default(0) // Monto Exento de ITBIS
+  itbisRate       Float         @default(18)
+  itbis           Float         @default(0)
+  discount        Float         @default(0)
+  total           Float
+  notes           String?
+  isFiao          Boolean       @default(false)
+  deliveryMan     String?
+  amountPaid      Float?        // Con cuanto pago el cliente
+  changeReturn    Float?        // Devuelta devuelta al cliente
+  changeGiven     Float?        // Menudo entregado al motorista
+  items           InvoiceItem[]
+  transactions    Transaction[]
+  createdAt       DateTime      @default(now())
+  updatedAt       DateTime      @updatedAt
+}
+
+model InvoiceItem {
+  id          String   @id @default(cuid())
+  invoiceId   String
+  invoice     Invoice  @relation(fields: [invoiceId], references: [id], onDelete: Cascade)
+  productId   String?
+  product     Product? @relation(fields: [productId], references: [id])
+  description String
+  quantity    Float    @default(1)
+  unitPrice   Float
+  hasItbis    Boolean  @default(true)
+  total       Float
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+}
+
+model CashMovement {
+  id            String             @id @default(cuid())
+  companyId     String?
+  company       Company?           @relation(fields: [companyId], references: [id], onDelete: Cascade)
+  type          String             @default("OUTFLOW") // OUTFLOW (gasto/salida) or INFLOW (ingreso/fondo inicial)
+  category      String             // COMPRA_PRODUCTOS, PAGO_EMPLEADOS, OTROS_GASTOS, FONDO_INICIAL
+  description   String             // Detalle o concepto general
+  amount        Float              // Monto total del movimiento
+  responsible   String?            // Nombre de a quién se pagó o empleado
+  notes         String?
+  items         CashMovementItem[]
+  date          DateTime           @default(now())
+  createdAt     DateTime           @default(now())
+  updatedAt     DateTime           @updatedAt
+}
+
+model CashMovementItem {
+  id              String       @id @default(cuid())
+  cashMovementId  String
+  cashMovement    CashMovement @relation(fields: [cashMovementId], references: [id], onDelete: Cascade)
+  productId       String?
+  description     String
+  quantity        Float        @default(1)
+  unitPrice       Float
+  total           Float
+  addToStock      Boolean      @default(false)
+}
+

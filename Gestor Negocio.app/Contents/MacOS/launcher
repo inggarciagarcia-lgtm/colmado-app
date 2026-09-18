@@ -1,0 +1,27 @@
+#!/bin/bash
+export PATH="/usr/local/bin:/opt/homebrew/bin:/usr/bin:/bin:/usr/sbin:/sbin:$PATH"
+
+PROJECT_DIR="/Users/mrgarciag/.gemini/antigravity/scratch/gestor-negocio"
+PORT=3001
+
+# Check if port 3001 is running
+if ! lsof -i :$PORT >/dev/null 2>&1; then
+    cd "$PROJECT_DIR"
+    nohup npx next start -H 0.0.0.0 -p $PORT >/dev/null 2>&1 &
+    
+    # Wait for server to respond
+    for i in $(seq 1 30); do
+        if curl -s -I http://localhost:$PORT >/dev/null 2>&1; then
+            break
+        fi
+        sleep 0.5
+    done
+fi
+
+# Open directly in standalone window mode with Chrome or default browser
+TARGET_URL="http://localhost:$PORT/pos"
+if [ -d "/Applications/Google Chrome.app" ]; then
+    open -na "Google Chrome" --args --app="$TARGET_URL"
+else
+    open "$TARGET_URL"
+fi

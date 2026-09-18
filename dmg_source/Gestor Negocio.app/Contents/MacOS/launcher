@@ -1,0 +1,25 @@
+#!/bin/bash
+export PATH="/usr/local/bin:/opt/homebrew/bin:/usr/bin:/bin:/usr/sbin:/sbin:$PATH"
+
+PROJECT_DIR="/Users/mrgarciag/.gemini/antigravity/scratch/gestor-negocio"
+
+# Check if port 3000 is running
+if ! lsof -i :3000 >/dev/null 2>&1; then
+    cd "$PROJECT_DIR"
+    nohup npm run dev >/dev/null 2>&1 &
+    
+    # Wait for server to respond
+    for i in $(seq 1 30); do
+        if curl -s -I http://localhost:3000/login >/dev/null 2>&1; then
+            break
+        fi
+        sleep 0.5
+    done
+fi
+
+# Open directly in standalone window mode with Chrome or default browser
+if [ -d "/Applications/Google Chrome.app" ]; then
+    open -na "Google Chrome" --args --app="http://localhost:3000"
+else
+    open "http://localhost:3000"
+fi
