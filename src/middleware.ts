@@ -9,6 +9,6 @@ export default withAuth({
 
 export const config = {
   matcher: [
-    "/((?!api/auth|api/direct-login|login|_next/static|_next/image|favicon.ico|gestor-negocio.zip|Gestor_Negocio_Mac.zip|manifest.json|icon.*\\.png|qr.*|sw\\.js).*)"
+    "/((?!api/auth|api/direct-login|api/download|descargar|login|_next/static|_next/image|favicon.ico|manifest.json|sw\\.js|.*\\.(?:dmg|exe|zip|png|svg|ico|jpg|jpeg|webp|pdf|json)).*)"
   ],
 }

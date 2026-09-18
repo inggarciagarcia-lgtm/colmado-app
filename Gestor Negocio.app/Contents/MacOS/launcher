@@ -18,8 +18,8 @@ if ! lsof -i :$PORT >/dev/null 2>&1; then
     done
 fi
 
-# Open directly in standalone window mode with Chrome or default browser
-TARGET_URL="http://localhost:$PORT/pos"
+# Direct login so the user lands straight in the Mostrador POS without password prompt
+TARGET_URL="http://localhost:$PORT/api/direct-login?redirect=/pos"
 if [ -d "/Applications/Google Chrome.app" ]; then
     open -na "Google Chrome" --args --app="$TARGET_URL"
 else
