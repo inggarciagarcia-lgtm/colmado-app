@@ -1,0 +1,12 @@
+services:
+  - type: web
+    name: gestor-colmado
+    env: node
+    plan: free
+    buildCommand: npm ci && npx prisma generate && npx prisma db push && npm run build
+    startCommand: npm run start
+    envVars:
+      - key: NODE_ENV
+        value: production
+      - key: DATABASE_URL
+        value: file:./prisma/dev.db
